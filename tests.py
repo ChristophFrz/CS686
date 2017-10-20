@@ -216,6 +216,7 @@ class TestConnectFourPlay(unittest.TestCase):
         elif g4 == 1:
             losses += 1
 
+        print(wins-losses, "=Difference of wins and losses")
         return wins - losses >= 2
 
 

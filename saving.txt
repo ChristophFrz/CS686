@@ -1,10 +1,34 @@
+
+
+tuple_moves = []
+        print(current_moves)
+        if len(current_moves) == 8:
+            for i in range(0,len(current_moves),2):
+                tuple_moves.append((current_moves[i], current_moves[i+1]))
+            tuple_moves = sorted(tuple_moves, key = lambda x: (x[0], x[1]))
+            print(tuple_moves)
+            if repr(tuple_moves) in repetitive_moves:
+                return repetitive_moves[repr(tuple_moves)]
+            else:
+                non_repetetive_move = 0
+                for i in range(len(tuple_moves)-1):
+                    for j in range(i+1, len(tuple_moves)):
+                        if tuple_moves[i][0] == tuple_moves[j][0] or tuple_moves[i][0] == tuple_moves[j][1]:
+                            non_repetetive_move = 1
+                            break
+                        if tuple_moves[i][1] == tuple_moves[j][0] or tuple_moves[i][1] == tuple_moves[j][1]:
+                            non_repetetive_move = 1
+                            break
+                if non_repetetive_move == 0:
+                    print("used")
+                    repetitive_moves[repr(tuple_moves)] = eval_fn(board)
+-------------------------------------------------------------------------------
 """
 This is the only file you should change in your submission!
 """
 from basicplayer import basic_evaluate, minimax, get_all_next_moves, is_terminal
 from util import memoize, run_search_function, INFINITY, NEG_INFINITY
 from connectfour import ConnectFourBoard
-
 
 
 
@@ -63,7 +87,7 @@ quick_to_win_player = lambda board: minimax(board, depth=4,
 # next board configurations, and is_terminal_fn when
 # checking game termination.
 # The default functions for get_next_moves_fn and is_terminal_fn set here will work for connect_four.
-def alphabeta_find_board_value(alpha, beta, maxTurn, board, current_moves, repetitive_moves, depth, eval_fn,
+def alphabeta_find_board_value(alpha, beta, maxTurn, board, depth, eval_fn,
                              get_next_moves_fn=get_all_next_moves,
                              is_terminal_fn=is_terminal):
     """
@@ -76,8 +100,7 @@ def alphabeta_find_board_value(alpha, beta, maxTurn, board, current_moves, repet
     if maxTurn:
         v = -float("inf")
         for move, new_board in get_next_moves_fn(board):
-            current_moves.append(move)
-            val = -1 * alphabeta_find_board_value( alpha, beta, False, new_board, current_moves, repetitive_moves, depth-1, eval_fn,
+            val = -1 * alphabeta_find_board_value( alpha, beta, False, new_board, depth-1, eval_fn,
                                             get_next_moves_fn, is_terminal_fn)
             v = max(v, val)
             alpha = max(alpha, v)
@@ -88,8 +111,7 @@ def alphabeta_find_board_value(alpha, beta, maxTurn, board, current_moves, repet
     else:
         v = float("inf")
         for move, new_board in get_next_moves_fn(board):
-            current_moves.append(move)
-            val = -1 * alphabeta_find_board_value( alpha, beta, True, new_board, current_moves, repetitive_moves, depth-1, eval_fn,
+            val = -1 * alphabeta_find_board_value( alpha, beta, True, new_board, depth-1, eval_fn,
                                             get_next_moves_fn, is_terminal_fn)
             v = min(v, -val)
             beta = min(beta, v)
@@ -106,12 +128,9 @@ def alpha_beta_search(board, depth,
     best_val = None
     alpha = -float("inf")
     beta = float("inf")
-    repetitive_moves = {}
     
     for move, new_board in get_next_moves_fn(board):
-        current_moves = []
-        current_moves.append(move)
-        val = -1 * alphabeta_find_board_value(alpha, beta, False, new_board, current_moves, repetitive_moves, depth-1, eval_fn,
+        val = -1 * alphabeta_find_board_value(alpha, beta, False, new_board, depth-1, eval_fn,
                                             get_next_moves_fn,
                                             is_terminal_fn)
         #print("This is val: ", val, "move  ", move)
@@ -121,7 +140,6 @@ def alpha_beta_search(board, depth,
     #print(test)
     print("MINIMAX_alphabeta: Decided on column {} with rating {}".format(best_val[1], best_val[0]))
     return best_val[1]
-
 
 
 
@@ -144,7 +162,7 @@ def find_possible4(board, chain, other_player_ID):
     for i in range(len(chain)):
         tuples = sorted(chain[i], key=lambda x:x[0], reverse=True)
         if True:
-            if True:
+            if len(tuples)==3:
                 #tuples = sortRow_chain[i]
                 # check if 4 in a row possible
                 if tuples[0][0] == tuples[1][0]:
@@ -248,106 +266,37 @@ def find_possible4(board, chain, other_player_ID):
 # simple-evaluate (or focused-evaluate) while searching to the same depth.
 
 def better_evaluate(board):
-    score = 0
+    # filter chains with length of 1
+    current_chains = list(filter(lambda x: len(x) > 1, board.chain_cells(board.get_current_player_id())))
+    other_chains = list(filter(lambda x: len(x) > 1, board.chain_cells(board.get_other_player_id())))
+    #current_chain2, current_chain3 = 0,0
+    #other_chain2, other_chain3 = 0,0
+    
+
     if board.is_game_over():
         score = -10*(42-board.num_tokens_on_board())-1000
-        return score
-    # rows
-    for i in range(0,6):
-        for j in range(0,4):
-            tmp_score = 0
-            for k in range(0,4):
-                if board.get_cell(i,j+k) == board.get_other_player_id():
-                    tmp_score -= 1
-                elif board.get_cell(i,j+k) == board.get_current_player_id():
-                    tmp_score += 1
-            if tmp_score > 0:
-                score += 1
-            elif tmp_score < 0:
-                score -= 1
-                
-                
-    # columns
-    for j in range(0,7):
-        for i in range(0,3):
-            for k in range(0,4):
-                tmp_score = 0
-                if board.get_cell(i+k, j) == board.get_other_player_id():
-                    tmp_score -= 1
-                elif board.get_cell(i+k, j) == board.get_current_player_id():
-                    tmp_score += 1
-            if tmp_score > 0:
-                score += 1
-            elif tmp_score < 0:
-                score -= 1
-                    
-    # vertical down
-    for i in range(0,3):
-        for j in range(0,4):
-            tmp_score = 0
-            for k in range(0,4):
-                if board.get_cell(i+k, j+k) == board.get_other_player_id():
-                    tmp_score -= 1
-                elif board.get_cell(i+k, j+k) == board.get_current_player_id():
-                    tmp_score += 1
-            if tmp_score > 0:
-                score += 1
-            elif tmp_score < 0:
-                score -= 1
-                    
-    # vertical up
-    for i in range(3):
-        for j in range(4):
-            tmp_score = 0
-            for k in range(4):
-                if board.get_cell(5-i-k, j+k) == board.get_other_player_id():
-                    tmp_score -= 1
-                elif board.get_cell(5-i-k, j+k) == board.get_current_player_id():
-                    tmp_score += 1
-            if tmp_score > 0:
-                score += 1
-            elif tmp_score < 0:
-                score -= 1
-                    
+    else:
+        count = 0
+        if len(current_chains) >= 1:
+            for i in range(len(current_chains)):
+                if len(current_chains[i]) >= 2:
+                    count += 1
+                    break;
+        if count >= 1:
+            (current_possible4_by3, current_possible4_by2)  = find_possible4(board, current_chains, board.get_other_player_id())
+            (other_possible4_by3, other_possible4_by2) = find_possible4(board, other_chains, board.get_current_player_id())
+            #other_possible4_by3, other_possible4_by2 =0,0
+            score = 43*(current_possible4_by3 - other_possible4_by3) + 17*(current_possible4_by2 - other_possible4_by2)
+        elif count == 0 or score == 0:
+            score = board.longest_chain(board.get_current_player_id()) * 10
+            # Prefer having your pieces in the center of the board.
+            for row in range(6):
+                for col in range(7):
+                    if board.get_cell(row, col) == board.get_current_player_id():
+                        score -= abs(3-col)
+                    elif board.get_cell(row, col) == board.get_other_player_id():
+                        score += abs(3-col)
     return score
-                
-    
-    
-    
-    
-    
-    
-    # filter chains with length of 1
-#    current_chains = list(filter(lambda x: len(x) > 1, board.chain_cells(board.get_current_player_id())))
-#    other_chains = list(filter(lambda x: len(x) > 1, board.chain_cells(board.get_other_player_id())))
-#    #current_chain2, current_chain3 = 0,0
-#    #other_chain2, other_chain3 = 0,0
-#    
-#
-#    if board.is_game_over():
-#        score = -10*(42-board.num_tokens_on_board())-1000
-#    else:
-#        count = 0
-#        if len(current_chains) >= 1:
-#            for i in range(len(current_chains)):
-#                if len(current_chains[i]) >= 2:
-#                    count += 1
-#                    break;
-#        if count >= 1:
-#            (current_possible4_by3, current_possible4_by2)  = find_possible4(board, current_chains, board.get_other_player_id())
-#            (other_possible4_by3, other_possible4_by2) = find_possible4(board, other_chains, board.get_current_player_id())
-#            #other_possible4_by3, other_possible4_by2 =0,0
-#            score = 43*(current_possible4_by3 - other_possible4_by3) + 17*(current_possible4_by2 - other_possible4_by2)
-#        elif count == 0:
-#            score = board.longest_chain(board.get_current_player_id()) * 10
-#            # Prefer having your pieces in the center of the board.
-#            for row in range(6):
-#                for col in range(7):
-#                    if board.get_cell(row, col) == board.get_current_player_id():
-#                        score -= abs(3-col)
-#                    elif board.get_cell(row, col) == board.get_other_player_id():
-#                        score += abs(3-col)
-#    return score
 
 # Comment this line after you've fully implemented better_evaluate
 #better_evaluate = memoize(basic_evaluate)
@@ -357,9 +306,146 @@ better_evaluate = memoize(better_evaluate)
 
 
 # A player that uses alpha-beta and better_evaluate:
-#def my_player(board):
-#    return run_search_function(board, search_fn=alpha_beta_search, eval_fn=better_evaluate, timeout=5)
+def my_player(board):
+    return run_search_function(board, search_fn=alpha_beta_search, eval_fn=better_evaluate, timeout=5)
 
-#my_player = lambda board: alpha_beta_search(board, depth=4, eval_fn=better_evaluate)
+# my_player = lambda board: alpha_beta_search(board, depth=4, eval_fn=better_evaluate)
+-----------------------------------------
 
-my_player = lambda board: run_search_function(board, search_fn = alpha_beta_search, eval_fn=better_evaluate)
+
+
+
+
+free_number2 = 0;
+        for i in range(len(current_chains)):
+            size = len(current_chains[i])
+            sort = sorted(current_chains[i], key=lambda x:x[0], reverse=True)
+            
+            if size ==2:
+                is_free = 0
+                # horizontal
+                if sort[0][0]== sort[1][0]:
+                    sort = sorted(current_chains[i], key=lambda x:x[1])
+                    is_free = 0
+                    for k in range(1,3):
+                        if sort[0][1]-k >= 0:
+                            if board.get_cell(sort[0][0], sort[0][1]-k) != board.get_other_player_id():
+                                is_free += 1
+                    if is_free == 2:
+                        free_number2 += 1
+                    is_free = 0
+                    for k in range(1,3):
+                        if sort[1][1]+k <= 6:
+                            if board.get_cell(sort[1][0], sort[1][1]+k) != board.get_other_player_id():
+                                is_free += 1
+                    if is_free == 2:
+                        free_number2 += 1
+                        
+                # vertiacal
+                elif sort[0][1] == sort[1][1]:
+                    is_free = 0
+                    for k in range(1,3):
+                        if sort[1][1]-k >= 0:
+                            if board.get_cell(sort[1][0], sort[1][1]-k) != board.get_other_player_id():
+                                is_free += 1
+                    if is_free == 2:
+                        free_number2 += 1
+
+                # diagonal
+                else:
+                    if sort[0][1] < sort[1][1]:
+                        is_free = 0
+                        for k in range(1,3):
+                            if sort[1][1]+k <= 6 and sort[1][0]-k >= 0:
+                                if board.get_cell(sort[1][0]-k, sort[1][1]+k) != board.get_other_player_id():
+                                    is_free += 1
+                        if is_free == 2:
+                            free_number2 += 1
+                            
+                        is_free = 0
+                        for k in range(1,3):
+                            if sort[0][0]+k <= 5 and sort[0][1]-k >= 0:
+                                if board.get_cell(sort[0][0]+k, sort[0][1]-k) != board.get_other_player_id():
+                                    is_free += 1
+                        if is_free == 2:
+                            free_number2 += 1
+
+                    else:
+                        is_free = 0
+                        for k in range(1,3):
+                            if sort[1][0]-k >= 0 and sort[1][1]-k >= 0:
+                                if board.get_cell(sort[1][0]-k, sort[1][1]-k) != board.get_other_player_id():
+                                    is_free += 1
+                        if is_free == 2:
+                            free_number2 += 1
+                        is_free = 0
+                        for k in range(1,3):
+                            if sort[0][0]+k <= 5 and sort[0][1]+k <= 6:
+                                if board.get_cell(sort[0][0]+k, sort[0][1]+k) != board.get_other_player_id():
+                                    is_free += 1
+                        if is_free == 2:
+                            free_number2 += 1               
+        score = free_number2 * 10        
+            #if size == 2:
+            #    current_chain2 += 1
+            #elif size == 3:
+            #    current_chain3 += 1
+        #for j in range(len(other_chains)):
+            #size = len(other_chains[j])
+            #if size == 2:
+            #    other_chain2 += 1
+            #elif size == 3:
+            #    other_chain3 += 1
+        #score = 50*(current_chain3 - other_chain3) + 10*(current_chain2 - other_chain2)
+        #score = 50*(current_chain3) - 20*(other_chain3) + 10*(current_chain2) - 2*(other_chain2)
+
+def find_possible4(board, chain, other_player_ID):
+    possible4 = 0
+    for i in range(len(chain)):
+        tuples = sorted(chain[i], key=lambda x:x[0], reverse=True)
+        print(tuples, "Tuples")
+        if True:
+            if len(tuples) == 3:
+                #tuples = sortRow_chain[i]
+                # check if 4 in a row possible
+                if tuples[0][0] == tuples[1][0]:
+                    r_min = min(tuples[j][1] for j in range(3))
+                    r_max = max(tuples[j][1] for j in range(3))
+                    if r_min - 1 >= 0 and board.get_cell(tuples[0][0], r_min-1) != other_player_ID:
+                        possible4 += 1
+                    if r_max + 1 <= 6 and board.get_cell(tuples[0][0], r_max+1) != other_player_ID:
+                        possible4 += 1
+                # check if 4 in a column
+                elif tuples[0][1] == tuples[1][1]:
+                    #c_max = max(tuples[j][0] for j in range(3))
+                    c_min = min(tuples[j][0] for j in range(3))
+                    if c_min - 1 >= 0 and board.get_cell(c_min-1, tuples[0][1]) != other_player_ID:
+                        possible4 += 1
+                # check if 4 diagonal
+                else:
+                    # currently from lowest point to upper right
+                    if tuples[0][1] < tuples[1][1]:
+                        # check upper right
+                        r_min =  min(tuples[j][1] for j in range(3))
+                        c_max = max(tuples[j][0] for j in range(3))
+                        if r_min-1 >= 0 and c_max+1 <= 5 and board.get_cell(c_max+1, r_min-1) != other_player_ID:
+                            possible4 += 1
+                        # check lower left
+                        r_max = max(tuples[j][1] for j in range(3))
+                        c_min = min(tuples[j][0] for j in range(3))
+                        if r_max+1 <= 6 and c_min-1 >= 0 and board.get_cell(c_min-1, r_max+1) != other_player_ID:
+                            possible4 += 1
+                    # currently from lowest point to upper left
+                    elif tuples[0][1] > tuples[1][1]:
+                        # check upper left
+                        r_min =  min(tuples[j][1] for j in range(3))
+                        c_min = min(tuples[j][0] for j in range(3))
+                        if r_min-1 >= 0 and c_min-1 >= 0 and board.get_cell(c_min-1,r_min-1) != other_player_ID:
+                            possible4 += 1
+                        # check lower right
+                        r_max = max(tuples[j][1] for j in range(3))
+                        c_max = max(tuples[j][0] for j in range(3))
+                        if r_max+1 <= 6 and c_max+1 <= 5 and board.get_cell(c_max+1, r_max+1) != other_player_ID:
+                            possible4 += 1
+        print("possible", possible4)
+    return possible4
